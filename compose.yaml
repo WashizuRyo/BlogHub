@@ -14,3 +14,12 @@ services:
     build: 
       context: "."
       dockerfile: "db.Dockerfile"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: blog-data
+    volumes:
+      - blog-data:/var/lib/postgresql/data
+volumes:
+  blog-data:
+    external: true

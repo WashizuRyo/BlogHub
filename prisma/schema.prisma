@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId   Int       @id
+  username String    @unique @db.VarChar(255)
+  blogs    Blog[]
+  comments Comment[]
+
+  @@map(name: "users")
+}
+
+model Blog {
+  blogId    String    @id @db.Uuid
+  blogTitle String    @db.VarChar(255)
+  blogText  String    @db.Text
+  createdBy Int
+  updateAt  DateTime  @db.Timestamptz(6)
+  user      User      @relation(fields: [createdBy], references: [userId], onDelete: Cascade)
+  comments  Comment[]
+
+  @@index(fields: [createdBy])
+  @@map(name: "blogs")
+}
+
+model Comment {
+  blogId  String @db.Uuid
+  userId  Int
+  comment String @db.VarChar(255)
+  user    User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  blgo    Blog   @relation(fields: [blogId], references: [blogId], onDelete: Cascade)
+
+  @@id([blogId, userId], name: "commentCompositedId")
+  @@map(name: "comments")
+}

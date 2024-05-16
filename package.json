@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "test" : "jest --testTimeout=10000 --forceExit"
+    "test": "jest --testTimeout=10000 --forceExit"
   },
   "dependencies": {
+    "@prisma/client": "4.13.0",
     "cookie-parser": "1.4.6",
     "debug": "4.3.4",
     "express": "4.18.2",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "jest": "29.5.0",
     "passport-stub": "1.1.1",
+    "prisma": "4.13.0",
     "supertest": "6.3.3"
   }
 }
