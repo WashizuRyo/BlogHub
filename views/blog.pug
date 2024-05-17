@@ -1,0 +1,6 @@
+extends layout 
+
+block content 
+  h4 #{blog.blogTitle}
+  p(style="white-space:pre;") #{blog.blogText}
+  p 作成者: #{blog.user.username}

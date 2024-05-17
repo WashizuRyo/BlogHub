@@ -3,3 +3,23 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
+  div 
+    if user 
+      a(href="/logout") #{user.username} をログアウトする
+      div
+        a(href="/blogs/new") ブログをつくる
+      - const hasBlog = blogs.length > 0
+      if hasBlog 
+        h3 あなたの作ったブログ一覧
+        table
+          tr 
+            th タイトル
+            th 更新日時
+          each blog in blogs 
+            tr 
+              td
+                a(href=`/blogs/${blog.blogId}`)  #{blog.blogTitle}
+              td #{blog.updatedAt}
+    else 
+      div
+        a(href="/login") ログイン 

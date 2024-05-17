@@ -2,6 +2,8 @@
 const request = require('supertest');
 const app = require('../app');
 const passportStub = require('passport-stub');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient({ log: ['query'] });
 
 describe('/login', () => {
   beforeAll(() => {
@@ -36,5 +38,47 @@ describe('/logout', () => {
     .get('/logout')
     .expect('Location', '/')
     .expect(302);
+  });
+});
+
+describe('/blogs', () => {
+  let blogId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+
+    //テストで作成したデータを削除
+    await prisma.blog.delete({ where: { blogId } });
+
+  });
+  test('ブログが作成でき、表示される', async () => {
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+    const res = await request(app)
+      .post('/blogs')
+      .send({
+        blogTitle: 'testTitle',
+        blogText: 'testText'
+      })
+      .expect('Location', /blogs/)
+      .expect(302);
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    await request(app)
+      .get(createdBlogPath)
+      .expect(/testTitle/)
+      .expect(/testText/)
+      .expect(200);
   });
 });

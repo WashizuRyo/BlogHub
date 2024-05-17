@@ -17,7 +17,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: blog-data
+      POSTGRES_DB: blog_data
     volumes:
       - blog-data:/var/lib/postgresql/data
 volumes:

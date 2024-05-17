@@ -24,7 +24,7 @@ model Blog {
   blogTitle String    @db.VarChar(255)
   blogText  String    @db.Text
   createdBy Int
-  updateAt  DateTime  @db.Timestamptz(6)
+  updatedAt DateTime  @db.Timestamptz(6)
   user      User      @relation(fields: [createdBy], references: [userId], onDelete: Cascade)
   comments  Comment[]
 
