@@ -1,14 +1,14 @@
 extends layout 
 
 block content 
-  form(method="post", action="/blogs")
-    div 
-      h5 タイトル
-      input(type="text" name="blogTitle")
-    div 
-      h5 ブログの本文
-      textarea(name="blogText")
-    div 
-      h5 コメント
-      textarea(name="comment") 
-    button(type="submit") ブログをつくる
+  form.my-3(method="post", action="/blogs")
+    div.mb-3
+      label.form-label(for="blogTitle")  タイトル
+      input#blogTitle.form-control(type="text" name="blogTitle")
+    div.mb-3
+      label.form-label(for="blogText")  ブログの本文
+      textarea#blogText.form-control(name="blogText" rows="20")
+    div.mb-3
+      label.form-label(for="comment")  コメント
+      textarea#comment.form-control(name="comment" rows="5") 
+    button.btn.btn-primary(type="submit") ブログをつくる

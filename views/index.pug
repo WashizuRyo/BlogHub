@@ -1,25 +1,25 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
-  div 
+  div.container.my-3
+    div.p-5.bg-light.rounded-5
+      h1.text-body BlogHub 
+      p.lead BlogHubは、GitHubで認証でき、ブログを作れるサービスです。
+  div.container
     if user 
-      a(href="/logout") #{user.username} をログアウトする
       div
-        a(href="/blogs/new") ブログをつくる
+        a.btn.btn-primary(href="/blogs/new") ブログをつくる
       - const hasBlog = blogs.length > 0
       if hasBlog 
-        h3 あなたの作ったブログ一覧
-        table
+        h3.my-3 ブログ一覧
+        table.table
           tr 
             th タイトル
             th 更新日時
+            th 作成者
           each blog in blogs 
             tr 
               td
-                a(href=`/blogs/${blog.blogId}`)  #{blog.blogTitle}
-              td #{blog.updatedAt}
-    else 
-      div
-        a(href="/login") ログイン 
+                a(href=`/blogs/${blog.blogId}`) #{blog.blogTitle}
+              td #{blog.formattedUpdateAt}
+              td #{blog.user.username}

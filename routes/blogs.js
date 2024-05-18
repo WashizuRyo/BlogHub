@@ -26,7 +26,8 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
     data: {
       blogId: blogId,
       userId: parseInt(req.user.id),
-      comment: req.body.comment
+      username: req.user.username,
+      comment: req.body.comment || ''
     }
   });
   res.redirect(`/blogs/${blog.blogId}`);

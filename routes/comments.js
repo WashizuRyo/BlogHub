@@ -10,11 +10,13 @@ router.post('/:blogId/users/:userId/comments',
   async (req, res, next) => {
     const blogId = req.params.blogId;
     const userId = parseInt(req.params.userId);
+    const username = req.user.username;
     const comment = req.body.comment;
 
     const data = {
       userId,
       blogId,
+      username,
       comment: comment.slice(0, 255)
     };
     await prisma.comment.upsert({
