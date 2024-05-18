@@ -4,6 +4,10 @@ block content
   h4 #{blog.blogTitle}
   p(style="white-space:pre;") #{blog.blogText}
   p 作成者: #{blog.user.username}
+  - const isMine = parseInt(user.id) === blog.user.userId 
+  if isMine 
+    div 
+      a(href=`/blogs/${blog.blogId}/edit`) ブログを編集する 
   tr
     th コメント
       each comment in comments 

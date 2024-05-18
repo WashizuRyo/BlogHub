@@ -1,0 +1,16 @@
+extends layout 
+
+block content 
+  h3 予定の編集
+  form(method="post", action=`/blogs/${blog.blogId}/update`) 
+    div 
+      h5 タイトル
+      input(type="text" name="blogTitle" value=blog.blogTitle)
+    div 
+      h5 ブログの本文
+      textarea(name="blogText") #{blog.blogText}
+    div 
+      button(type="submit") 以上の内容でブログを編集する
+  h3 危険な変更
+  form(method="post", action=`/blogs/${blog.blogId}/delete`)
+    button(type="submit") この予定を削除する 

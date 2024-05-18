@@ -2,6 +2,7 @@
 const request = require('supertest');
 const app = require('../app');
 const passportStub = require('passport-stub');
+const { deleteBlogAggregate } = require('../routes/blogs');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({ log: ['query'] });
 
@@ -128,7 +129,86 @@ describe('/blogs/:blogId/users/:userId/comments', () => {
   });
 });
 
-async function deleteBlogAggregate(blogId) {
-  await prisma.comment.deleteMany({ where: { blogId } });
-  await prisma.blog.delete({ where: { blogId } });
-}
+describe('/blogs/:blogId/update', () => {
+  let blogId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+    //テストで作成したデータを削除
+   await deleteBlogAggregate(blogId);
+
+  });
+  test('ブログを編集できる', async () => {
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+    const res = await request(app)
+      .post('/blogs')
+      .send({
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    await request(app)
+      .post(`/blogs/${blogId}/update`)
+      .send({
+        blogTitle: 'testTitle2',
+        blogText: 'testText2'
+      });
+    const blog = await prisma.blog.findUnique({ where: { blogId } });
+    expect(blog.blogTitle).toBe('testTitle2');
+    expect(blog.blogText).toBe('testText2');
+  });
+});
+
+describe('/blogs/:blogId/delete', () => {
+  let blogId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+  });
+  test('ブログに関するすべての情報が削除できる', async () => {
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+    const res = await request(app)
+      .post('/blogs')
+      .send({
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    await request(app)
+      .post(`/blogs/${blogId}/delete`)
+    const blog = await prisma.blog.findUnique({ where: { blogId } });
+    const comment = await prisma.comment.findMany({ where: { blogId} });
+    expect(!blog).toBe(true);
+    expect(comment.length).toBe(0);
+  });
+});
