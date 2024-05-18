@@ -4,8 +4,11 @@ block content
   form(method="post", action="/blogs")
     div 
       h5 タイトル
-      input(type="text" name="blogTitile")
+      input(type="text" name="blogTitle")
     div 
       h5 ブログの本文
       textarea(name="blogText")
+    div 
+      h5 コメント
+      textarea(name="comment") 
     button(type="submit") 予定をつくる

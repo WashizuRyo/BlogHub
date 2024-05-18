@@ -53,7 +53,7 @@ describe('/blogs', () => {
     passportStub.uninstall();
 
     //テストで作成したデータを削除
-    await prisma.blog.delete({ where: { blogId } });
+    await deleteBlogAggregate(blogId);
 
   });
   test('ブログが作成でき、表示される', async () => {
@@ -68,7 +68,8 @@ describe('/blogs', () => {
       .post('/blogs')
       .send({
         blogTitle: 'testTitle',
-        blogText: 'testText'
+        blogText: 'testText',
+        comment: 'testcomment'
       })
       .expect('Location', /blogs/)
       .expect(302);
@@ -79,6 +80,55 @@ describe('/blogs', () => {
       .get(createdBlogPath)
       .expect(/testTitle/)
       .expect(/testText/)
+      .expect(/testcomment/)
       .expect(200);
   });
 });
+
+describe('/blogs/:blogId/users/:userId/comments', () => {
+  let blogId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+    //テストで作成したデータを削除
+   await deleteBlogAggregate(blogId);
+
+  });
+  test('コメントが更新できる', async () => {
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+    const res = await request(app)
+      .post('/blogs')
+      .send({
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    await request(app)
+      .post(`/blogs/${blogId}/users/${userId}/comments`)
+      .send({ comment: 'testComment2' })
+      .expect('{"status":"OK","comment":"testComment2"}')
+    const comments = await prisma.comment.findMany({ where: { blogId } });
+    expect(comments.length).toBe(1);
+    expect(comments[0].comment).toBe('testComment2');
+  });
+});
+
+async function deleteBlogAggregate(blogId) {
+  await prisma.comment.deleteMany({ where: { blogId } });
+  await prisma.blog.delete({ where: { blogId } });
+}

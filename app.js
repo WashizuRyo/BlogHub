@@ -49,7 +49,7 @@ const indexRouter = require('./routes/index');
 const loginRouter = require('./routes/login');
 const logoutRouter = require('./routes/logout');
 const blogsRouter = require('./routes/blogs');
-
+const commentRouter = require('./routes/comments');
 
 const app = express();
 
@@ -72,6 +72,7 @@ app.use('/', indexRouter);
 app.use('/login', loginRouter);
 app.use('/logout', logoutRouter);
 app.use('/blogs', blogsRouter);
+app.use('/blogs', commentRouter);
 
 app.get(
   '/auth/github', 

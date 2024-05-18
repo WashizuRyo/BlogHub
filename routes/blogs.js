@@ -22,6 +22,13 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
       updatedAt: updatedAt
     }
   });
+  const comment = await prisma.comment.create({
+    data: {
+      blogId: blogId,
+      userId: parseInt(req.user.id),
+      comment: req.body.comment
+    }
+  });
   res.redirect(`/blogs/${blog.blogId}`);
 });
 
@@ -37,10 +44,18 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
       }
     }
   });
+
+  // コメントの取得
+  const comments = await prisma.comment.findMany({
+    where: { blogId: blog.blogId }
+  });
+
   if (blog) {
     res.render('blog', {
       user: req.user,
-      blog: blog
+      blog: blog,
+      users: [ req.user ],
+      comments: comments
     })
   } else {
     const err = new Error('指定されたブログはありません。')
@@ -48,5 +63,6 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
     next (err);
   }
 });
+
 
 module.exports = router;

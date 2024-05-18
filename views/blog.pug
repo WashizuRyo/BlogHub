@@ -4,3 +4,14 @@ block content
   h4 #{blog.blogTitle}
   p(style="white-space:pre;") #{blog.blogText}
   p 作成者: #{blog.user.username}
+  tr
+    th コメント
+      each comment in comments 
+        td
+          if comment.userId === parseInt(user.id)
+            p#self-comment #{comment.comment}
+            button(
+              data-blog-id=blog.blogId 
+              data-user-id=user.id)#self-comment-button 編集
+          else 
+            p #{comment.comment}
