@@ -7,7 +7,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({ log: [ 'query' ] });
 
 router.get('/new', authenticationEnsurer, (req, res, next) => {
-  res.render('new', { user: req.user });
+  res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
 router.post('/', authenticationEnsurer, async (req, res, next) => {
@@ -22,12 +22,14 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
       updatedAt: updatedAt
     }
   });
+  const commentId = uuidv4();
   const comment = await prisma.comment.create({
     data: {
+      commentId: commentId,
       blogId: blogId,
       userId: parseInt(req.user.id),
       username: req.user.username,
-      comment: req.body.comment || ''
+      comment: req.body.comment
     }
   });
   res.redirect(`/blogs/${blog.blogId}`);
@@ -50,13 +52,12 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
   const comments = await prisma.comment.findMany({
     where: { blogId: blog.blogId }
   });
-
   if (blog) {
     res.render('blog', {
       user: req.user,
       blog: blog,
-      users: [ req.user ],
-      comments: comments
+      comments: comments,
+      csrfToken: req.csrfToken()
     })
   } else {
     const err = new Error('指定されたブログはありません。')
@@ -72,10 +73,11 @@ router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
   if (isMine(req, blog)) { // 作成者のみが編集フォームを開ける
     res.render('edit', {
       user: req.user,
-      blog: blog
+      blog: blog,
+      csrfToken: req.csrfToken()
     });
   } else {
-    const err = new Error('指定されたブログがない、または、ブログを編集する権限がありません。');
+    const err = new Error('指定されたブログがない、または、編集する権限がありません。');
     err.status = 404;
     next(err);
   }
@@ -84,7 +86,6 @@ router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
 function isMine(req, blog) {
   return blog && parseInt(blog.createdBy) === parseInt(req.user.id);
 }
-
 
 router.post('/:blogId/update', authenticationEnsurer, async (req, res, next) => {
   let blog = await prisma.blog.findUnique({
@@ -122,6 +123,7 @@ router.post('/:blogId/delete', authenticationEnsurer, async (req, res, next) => 
     next(err);
   }
 });
+
 
 async function deleteBlogAggregate(blogId) {
   await prisma.comment.deleteMany({ where: { blogId } });

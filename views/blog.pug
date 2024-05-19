@@ -4,25 +4,41 @@ block content
   div.card.my-3
     h4.card-header #{blog.blogTitle}
     div.card-body
-      p.card-text(style="white-space: pre;") #{blog.blogText}
+      p.card-text(style="white-space: pre-wrap; word-break: break-all;") #{blog.blogText}
     div.card-footer 作成者: #{blog.user.username}
   - const isMine = parseInt(user.id) === blog.user.userId 
   if isMine 
-    div 
+    div.mb-3
       a.btn.btn-primary(href=`/blogs/${blog.blogId}/edit`) ブログを編集する 
+  a.btn.btn-success(href="/") ブログ一覧
   h3.my-3 コメント
   table.table.table-bordered
     tr
       th 作成者
-      td コメント内容
-    tr
-      each comment in comments
-          th #{comment.username}
-          td
-            if comment.userId === parseInt(user.id)
-              p#self-comment #{comment.comment}
-              button(
-                data-blog-id=blog.blogId 
-                data-user-id=user.id)#self-comment-button.btn.btn-info 編集
-            else 
-              p #{comment.comment}
+      th(scope="col" style="width: 60%") コメント内容
+    each comment in comments
+      tr
+        td #{comment.username}
+        td
+          if comment.userId === parseInt(user.id)
+            p.self-comment #{comment.comment}
+            div.d-flex.justify-content-end.mb-3
+              button.btn.btn-info(
+                data-blog-id=comment.blogId
+                data-user-id=comment.userId
+                data-comment-id=comment.commentId
+                data-blog-comment=comment.comment).self-comment-button 編集
+            div.d-flex.justify-content-end
+              form(method="post", action=`/blogs/${blog.blogId}/users/${user.id}/comments/${comment.commentId}/delete`)
+                input(type="hidden" name="_csrf" value!=csrfToken)
+                button.btn.btn-danger(type="submit") 削除
+          else
+            p #{comment}
+  div
+    h3 コメントを追加する
+    form(method="post", action=`/blogs/${blog.blogId}/comments`)
+      input(type="hidden" name="_csrf" value!=csrfToken)
+      div
+        textarea.form-control(name="comment" rows="8")
+        button(type="submit").btn.btn-primary.my-3 送信する
+  

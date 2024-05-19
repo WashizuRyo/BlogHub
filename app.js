@@ -6,6 +6,7 @@ const logger = require('morgan');
 const helmet = require('helmet');
 const session = require('express-session');
 const passport = require('passport');
+const csurf = require('tiny-csrf');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({ log: ['query'] });
 
@@ -60,13 +61,21 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser('BlogHub_signed_cookies'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(helmet());
 
 app.use(session({ secret: '417cce55dfafa4577454', resave: false, saveUninitialized: false}));
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(
+  csurf(
+    'nyobikosecretsecret9876543212367',
+    ['POST'],
+    [/blogs\/([^\/]+)\/users\/([^\/]+)\/comments\/([^\/]+)/]
+  )
+);
 
 app.use('/', indexRouter);
 app.use('/login', loginRouter);

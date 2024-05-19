@@ -33,13 +33,14 @@ model Blog {
 }
 
 model Comment {
-  blogId  String @db.Uuid
-  userId  Int
-  username String    @db.VarChar(255)
-  comment String @db.VarChar(255)
-  user    User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  blgo    Blog   @relation(fields: [blogId], references: [blogId], onDelete: Cascade)
+  commentId String @db.Uuid
+  blogId    String @db.Uuid
+  userId    Int
+  username  String @db.VarChar(255)
+  comment   String @db.VarChar(255)
+  user      User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  blog      Blog   @relation(fields: [blogId], references: [blogId], onDelete: Cascade)
 
-  @@id([blogId, userId], name: "commentCompositedId")
+  @@id([blogId, userId, commentId], name: "commentCompositedId")
   @@map(name: "comments")
 }
