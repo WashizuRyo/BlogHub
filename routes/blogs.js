@@ -191,7 +191,7 @@ async function deleteBlogAggregate(blogId) {
   await prisma.blog.delete({ where: { blogId } });
 }
 
-// ブログの作成者とリクエストしてきた人が同じ
+// ブログの作成者とリクエストが同じ
 function isMine(req, blog) {
   return blog && parseInt(blog.createdBy) === parseInt(req.user.id);
 }
