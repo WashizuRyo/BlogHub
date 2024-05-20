@@ -18,13 +18,14 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    const err = new Error('入力された情報が不十分または正しくありません。')
+    const err = new Error('入力された情報が不十分または正しくありません。(文字列を入力してください)')
       err.status = 400;
       return next(err);
   }
 
   const blogId = uuidv4();
   const updatedAt = new Date();
+  //blog作成
   const blog = await prisma.blog.create({
     data: {
       blogId: blogId,
@@ -35,6 +36,7 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
     }
   });
   const commentId = uuidv4();
+  // comment作成
   const comment = await prisma.comment.create({
     data: {
       commentId: commentId,
@@ -52,11 +54,11 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    const err = new Error('URL形式が正しくありません。');
+    const err = new Error('有効なブログIDを指定してください。');
     err.status = 400;
     return next(err);
   }
-
+  // blogを取得
   const blog = await prisma.blog.findUnique({
     where: { blogId: req.params.blogId },
     include: {
@@ -68,10 +70,10 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
       }
     }
   });
-  // 存在しないblogIdをした場合
-  if (!blog === true) {
-    const err = new Error('存在しないブログです。');
-    err.status = 400;
+  // 存在しないblogIdを指定した場合
+ if (!blog === true) {
+    const err = new Error('指定されたブログはありません。');
+    err.status = 404;
     return next(err);
   }
 
@@ -79,18 +81,13 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
   const comments = await prisma.comment.findMany({
     where: { blogId: blog.blogId }
   });
-  if (blog) {
-    res.render('blog', {
-      user: req.user,
-      blog: blog,
-      comments: comments,
-      csrfToken: req.csrfToken()
-    })
-  } else {
-    const err = new Error('指定されたブログはありません。')
-    err.status = 404;
-    next (err);
-  }
+
+  res.render('blog', {
+    user: req.user,
+    blog: blog,
+    comments: comments,
+    csrfToken: req.csrfToken()
+  })
 });
 
 router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
@@ -98,55 +95,45 @@ router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    const err = new Error('URLの形式が正しくありません。')
+    const err = new Error('有効なブログIDを指定してください。')
     err.status = 400;
     return next(err);
   }
-
+  // blogを取得
   const blog = await prisma.blog.findUnique({
     where: { blogId: req.params.blogId }
   });
 
-  // 存在しないblogIdをした場合
-  if (!blog === true) {
-    const err = new Error('存在しないブログです。');
-    err.status = 400;
-    return next(err);
-  }
-
-  if (isMine(req, blog)) { // 作成者のみが編集フォームを開ける
+  // 作成者のみが編集フォームを開ける
+  if (isMine(req, blog)) { 
     res.render('edit', {
       user: req.user,
       blog: blog,
       csrfToken: req.csrfToken()
     });
   } else {
-    const err = new Error('指定されたブログがない、または、編集する権限がありません。');
+    const err = new Error('指定されたブログがない、または、ブログを編集する権限がありません。');
     err.status = 404;
     next(err);
   }
 });
 
-function isMine(req, blog) {
-  return blog && parseInt(blog.createdBy) === parseInt(req.user.id);
-}
-
 router.post('/:blogId/update', authenticationEnsurer, async (req, res, next) => {
-  await param('blogId').isUUID('4').run(req);
-  await body('blogTitle').isString().run(req);
-  await body('blogText').isString().run(req);
+  await param('blogId').isUUID('4').withMessage('有効なブログIDを指定してください。').run(req);
+  await body('blogTitle').isString().withMessage('文字列を入力してください。').run(req);
+  await body('blogText').isString().withMessage('文字列を入力してください。').run(req);
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    const err = new Error('URLの形式が正しくありません。')
-    err.status = 400;
-    return next(err);
+    return res.status(400).json({ status: 'NG', error: errors.array() });
   }
-
+  // ブログを取得
   let blog = await prisma.blog.findUnique({
     where: { blogId: req.params.blogId }
   });
+
   try {
+    // ブログの作成者のみが編集できる
     if (isMine(req, blog)) {
       const updatedAt = new Date();
       blog = await prisma.blog.update({
@@ -165,7 +152,7 @@ router.post('/:blogId/update', authenticationEnsurer, async (req, res, next) => 
       next(err);
     }
   } catch (error) {
-    res.status(400).json({ status: 'NG', errors: [{ msg: '指定されたブログはありません。' }] });
+    res.status(400).json({ status: 'NG', errors: [{ msg: 'データベースエラー。' }] });
   }
 });
 
@@ -182,24 +169,31 @@ router.post('/:blogId/delete', authenticationEnsurer, async (req, res, next) => 
   const blog = await prisma.blog.findUnique({
     where: { blogId: req.params.blogId }
   });
+
   try {
+    // ブログの作成者のみが削除できる
     if (isMine(req, blog)) {
       await deleteBlogAggregate(blog.blogId);
       res.redirect('/');
     } else {
-      const err = new Error('削除する権限がありません');
+      const err = new Error('指定されたブログがない、または、削除する権限がありません。');
       err.status = 404;
       next(err);
     }
   } catch (error) {
-      res.status('400').json({ status: 'NG', errors: [{ msg: '指定されたブログはありません' }] });
+      res.status('400').json({ status: 'NG', errors: [{ msg: 'データベースエラー。' }] });
   }
 });
 
-
+// blogとcommentを削除
 async function deleteBlogAggregate(blogId) {
   await prisma.comment.deleteMany({ where: { blogId } });
   await prisma.blog.delete({ where: { blogId } });
+}
+
+// ブログの作成者とリクエストしてきた人が同じ
+function isMine(req, blog) {
+  return blog && parseInt(blog.createdBy) === parseInt(req.user.id);
 }
 
 router.deleteBlogAggregate = deleteBlogAggregate;

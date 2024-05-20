@@ -44,9 +44,17 @@ describe('/logout', () => {
 
 describe('/blogs', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async () => {
+    //データベースにユーザ登録
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
   });
 
   afterAll(async () => {
@@ -57,14 +65,8 @@ describe('/blogs', () => {
     await deleteBlogAggregate(blogId);
 
   });
+
   test('ブログが作成でき、表示される', async () => {
-    const userId = 0, username = 'testuser';
-    const data = { userId, username };
-    await prisma.user.upsert({
-      where: { userId },
-      create: data,
-      update: data
-    });
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -87,13 +89,161 @@ describe('/blogs', () => {
       .expect(/testcomment/)
       .expect(200);
   });
+
+  test('フォームの入力データが不正な場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    let res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 1234,
+        blogText: 'aaa',
+        comment: 'aaa'
+      })
+      .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
+      .expect(400)
+    
+    res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aa',
+        blogText: 134,
+        comment: 'aa'
+      })
+      .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
+      .expect(400)
+
+    res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aa',
+        blogText: 'aa',
+        comment: 123
+      })
+      .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
+      .expect(400)
+  })
+});
+
+describe('/blogs/:blogId', () => {
+  let blogId = '';
+  beforeAll(async () => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+    //テストで作成したデータを削除
+   await deleteBlogAggregate(blogId);
+
+  });
+  test('存在しないブログにアクセスした場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+      
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    
+    // blogIdがUUIDではない場合
+    await request(app)
+      .get('/blogs/aaa123')
+      .expect(/有効なブログIDを指定してください。/)
+      .expect(400)
+    
+    // blogIdがUUIDではあるが、存在しない場合
+    await request(app)
+      .get('/blogs/4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd')
+      .expect(/指定されたブログはありません。/)
+      .expect(404)
+  });
+});
+
+describe('/blogs/:blogId/edit', () => {
+  let blogId = '';
+  beforeAll(async () => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+    //テストで作成したデータを削除
+   await deleteBlogAggregate(blogId);
+
+  });
+  test('存在しないブログの編集ページにアクセスした場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+      
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    
+    // blogIdがUUIDではない場合
+    await request(app)
+      .get('/blogs/aaa123/edit')
+      .expect(/有効なブログIDを指定してください。/)
+      .expect(400)
+
+    // 存在しないblogIdを指定した場合
+    await request(app)
+      .get('/blogs/4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd/edit')
+      .expect(/指定されたブログがない、または、ブログを編集する権限がありません。/)
+      .expect(404)
+  });
 });
 
 describe('/blogs/:blogId/comments', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async () => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
   });
 
   afterAll(async () => {
@@ -105,13 +255,6 @@ describe('/blogs/:blogId/comments', () => {
 
   });
   test('コメントを追加できる', async () => {
-    const userId = 0, username = 'testuser';
-    const data = { userId, username };
-    await prisma.user.upsert({
-      where: { userId },
-      create: data,
-      update: data
-    });
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -136,15 +279,56 @@ describe('/blogs/:blogId/comments', () => {
     expect(comments[0].comment).toBe('testComment');
     expect(comments[1].comment).toBe('testComment2');
   });
+
+  test('パラメータの値が不正、または、フォームの値が不正の場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+
+    await request(app)
+      .post(`/blogs/${blogId}/comments`)
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        comment: 1234
+      })
+      .expect(/コメントを入力してください。/)
+      .expect(400)
+    
+    await request(app)
+      .post('/blogs/aaa123/comments')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        comment: 'aaa'
+      })
+      .expect(/有効なブログIDを指定してださい。/)
+      .expect(400)
+  })
 });
-
-
 
 describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async () => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
   });
 
   afterAll(async () => {
@@ -156,13 +340,6 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {
 
   });
   test('コメントを削除', async () => {
-    const userId = 0, username = 'testuser';
-    const data = { userId, username };
-    await prisma.user.upsert({
-      where: { userId },
-      create: data,
-      update: data
-    });
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -180,21 +357,74 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {
     const commentId = comment[0].commentId;
 
     await request(app)
-      .post(`/blogs/${blogId}/users/${userId}/comments/${commentId}/delete`)
+      .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/${commentId}/delete`)
       .set('Cookie', `csrfToken=${formToken}`)
       .send({ _csrf: formToken })
       .expect('Location', `/blogs/${blogId}`)
     const comments = await prisma.comment.findMany({ where: { blogId } });
     expect(comments.length).toBe(0);
   });
+
+  test('パラメータの値が不正、または、フォームの値が不正の場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+    
+      const createdBlogPath = res.headers.location;
+      blogId = createdBlogPath.split('/blogs/')[1];
+      const comment = await prisma.comment.findMany({ where: { blogId: blogId } });
+      const commentId = comment[0].commentId;
+
+      // blogIdがUUIDではない場合
+      await request(app)
+        .post(`/blogs/aa1234/users/${comment[0].userId}/comments/${commentId}/delete`)
+        .send({ _csrf: formToken, })
+        .expect(/有効なブログIDを入力してください。/)
+        .expect(400)
+      
+      // userIdが不正な場合
+      await request(app)
+        .post(`/blogs/${blogId}/users/5667/comments/${commentId}/delete`)
+        .send({ _csrf: formToken })
+        .expect(/ユーザIDが不正です。/)
+        .expect(400)
+
+      // commentIdがUUIDではない場合
+      await request(app)
+        .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/aa1234/delete`)
+        .send({ _csrf: formToken })
+        .expect(/有効なコメントIDを入力してください。/)
+
+      //存在しないblogId,commentIdを指定した場合
+      const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
+      await request(app)
+        .post(`/blogs/${fakeUuid}/users/${comment[0].userId}/comments/${fakeUuid}/delete`)
+        .send({ _csrf: formToken })
+        .expect(/指定されたブログがない、または、削除する権限がありません。/)
+  })  
 });
 
 
-describe('/blogs/:blogId/users/:userId/comments', () => {
+describe('/blogs/:blogId/users/:userId/comments/:commentId', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async () => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+
+    });
   });
 
   afterAll(async () => {
@@ -202,17 +432,10 @@ describe('/blogs/:blogId/users/:userId/comments', () => {
     passportStub.uninstall();
     
     //テストで作成したデータを削除
-   await deleteBlogAggregate(blogId);
+    await deleteBlogAggregate(blogId);
 
   });
   test('コメントが更新できる', async () => {
-    const userId = 0, username = 'testuser';
-    const data = { userId, username };
-    await prisma.user.upsert({
-      where: { userId },
-      create: data,
-      update: data
-    });
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -230,31 +453,70 @@ describe('/blogs/:blogId/users/:userId/comments', () => {
     const commentId = comment[0].commentId;
 
     await request(app)
-      .post(`/blogs/${blogId}/users/${userId}/comments/${commentId}`)
+      .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/${commentId}`)
       .send({ comment: 'testComment2' })
       .expect('{"status":"OK","comment":"testComment2"}')
     const comments = await prisma.comment.findMany({ where: { blogId } });
     expect(comments.length).toBe(1);
     expect(comments[0].comment).toBe('testComment2');
   });
+
+  test('パラメータの値が不正、または、フォームの値が不正の場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+    const comment = await prisma.comment.findMany({ where: { blogId: blogId } });
+    const commentId = comment[0].commentId;
+
+    // commentが不正な値の場合
+    await request(app)
+      .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/${commentId}`)
+      .send({ comment: 1224 })
+      .expect(/コメントを入力してください。/)
+
+    // blogIdがUUIDではない場合
+    await request(app)
+      .post(`/blogs/aaa123/users/${comment[0].userId}/comments/${commentId}`)
+      .send({ comment: 'aaa' })
+      .expect(/有効なブログIDを指定してください。/)
+
+    // userIdが不正な値の場合
+    await request(app)
+      .post(`/blogs/${blogId}/users/1234/comments/${commentId}`)
+      .send({ comment: 'aaa' })
+      .expect(/ユーザIDが不正です。/)
+
+    // commentIdがUUIDではない場合
+    await request(app)
+    .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/aaa1234`)
+    .send({ comment: 'aaa' })
+    .expect(/有効なコメントIDを入力してください。/)
+
+    // blogId,commentIdはUUIDだが、存在しない場合
+    const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
+    await request(app)
+      .post(`/blogs/${fakeUuid}/users/${comment[0].userId}/comments/${fakeUuid}`)
+      .send({ comment: 'aaa' })
+      .expect(/データベースエラー/)
+      
+  })
 });
 
 describe('/blogs/:blogId/update', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async () => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-  });
-
-  afterAll(async () => {
-    passportStub.logout();
-    passportStub.uninstall();
-    
-    //テストで作成したデータを削除
-   await deleteBlogAggregate(blogId);
-
-  });
-  test('ブログを編集できる', async () => {
     const userId = 0, username = 'testuser';
     const data = { userId, username };
     await prisma.user.upsert({
@@ -262,6 +524,18 @@ describe('/blogs/:blogId/update', () => {
       create: data,
       update: data
     });
+
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    
+    //テストで作成したデータを削除
+    await deleteBlogAggregate(blogId);
+
+  });
+  test('ブログを編集できる', async () => {
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -287,13 +561,81 @@ describe('/blogs/:blogId/update', () => {
     expect(blog.blogTitle).toBe('testTitle2');
     expect(blog.blogText).toBe('testText2');
   });
+
+  test('パラメータの値が不正、または、フォームの値が不正の場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+
+    // blogIdがUUIDではない場合
+    await request(app)
+      .post('/blogs/aaa1234/update')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aaa',
+        blogText: 'aaa'
+      })
+      .expect(/有効なブログIDを指定してください。/)
+
+    // blogTitleが文字列ではない場合
+    await request(app)
+      .post(`/blogs/${blogId}/update`)
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 1234,
+        blogText: 'aaa'
+      })
+      .expect(/文字列を入力してください。/)
+
+    // blogTextが文字列ではない場合
+    await request(app)
+      .post(`/blogs/${blogId}/update`)
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aaa',
+        blogText: 1234
+      })
+      .expect(/文字列を入力してください。/)
+    
+    // blogIdがUUIDであるが、存在しない場合
+    const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
+    await request(app)
+      .post(`/blogs/${fakeUuid}/update`)
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aaa',
+        blogText: 'aaa'
+      })
+      .expect(/指定されたブログがない、または、ブログを編集する権限がありません。/)
+  });
 });
 
 describe('/blogs/:blogId/delete', () => {
   let blogId = '';
-  beforeAll(() => {
+  beforeAll(async() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    const userId = 0, username = 'testuser';
+    const data = { userId, username };
+    await prisma.user.upsert({
+      where: { userId },
+      create: data,
+      update: data
+    });
   });
 
   afterAll(async () => {
@@ -302,13 +644,6 @@ describe('/blogs/:blogId/delete', () => {
     
   });
   test('ブログに関するすべての情報が削除できる', async () => {
-    const userId = 0, username = 'testuser';
-    const data = { userId, username };
-    await prisma.user.upsert({
-      where: { userId },
-      create: data,
-      update: data
-    });
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -331,8 +666,40 @@ describe('/blogs/:blogId/delete', () => {
     expect(!blog).toBe(true);
     expect(comment.length).toBe(0);
   });
+
+  test('パラメータの値が不正の場合', async () => {
+    const { formToken, cookieToken } = await getCSRFTokens();
+    const res = await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'testTitle',
+        blogText: 'testText',
+        comment: 'testComment'
+      })
+
+    const createdBlogPath = res.headers.location;
+    blogId = createdBlogPath.split('/blogs/')[1];
+
+    // blogIdがUUIDではない場合
+    await request(app)
+      .post('/blogs/aaa1234/delete')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({ _csrf: formToken })
+      .expect(/URLの形式が正しくありません。/)
+
+    // blogIdがUUIDであるが、存在しない場合
+    const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
+    await request(app)
+      .post(`/blogs/${fakeUuid}/delete`)
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({ _csrf: formToken })
+      .expect(/指定されたブログがない、または、削除する権限がありません。/)
+    });
 });
 
+// CSRFTokensを取得
 async function getCSRFTokens() {
   const response = await request(app).get('/blogs/new');
   return {
