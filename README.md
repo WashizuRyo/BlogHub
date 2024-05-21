@@ -1,5 +1,7 @@
 # The-view
-  
+  GitHubで認証でき、ブログを書いたり、閲覧できたりするアプリケーションです。<br>
+  レスポンシブ対応のためスマートフォンからもご確認いただけます。<br>
+  <img width="1400" alt="スクリーンショット" src="https://imgur.com/t9BGnAz](https://i.imgur.com/t9BGnAz.png"><br>
 
 # URL
 https://bloghub-q76p.onrender.com<br>
