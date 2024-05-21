@@ -1,8 +1,8 @@
 # The-View
   GitHubで認証でき、ブログを書いたり、閲覧できたりするアプリケーションです。<br>
   レスポンシブ対応のためスマートフォンからもご確認いただけます。<br>
-  <img width="800" alt="スクリーンショット 2024-05-22 0 07 39" src="https://github.com/WashizuRyo/BlogHub/assets/124658697/2946fdcd-1477-4259-a8e8-c10c7abc773f"><br>
-  <img width="345" height="630" src="https://github.com/WashizuRyo/BlogHub/assets/124658697/1017f548-f9a4-4bf4-9676-dd7790c9d485"><br>
+  <img width="1421" alt="スクリーンショット 2024-05-22 0 07 39" src="https://github.com/WashizuRyo/BlogHub/assets/124658697/2946fdcd-1477-4259-a8e8-c10c7abc773f"><br>
+  <img width="393" height="897" src="https://github.com/WashizuRyo/BlogHub/assets/124658697/ea6bd51f-af8d-4ff7-97b4-4f614ef9dfc9"><br>
 
 # URL
 https://bloghub-q76p.onrender.com<br>
