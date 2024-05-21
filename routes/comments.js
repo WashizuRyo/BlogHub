@@ -6,7 +6,7 @@ const authenticationEnsurer = require('./authentication-ensurer');
 const { v4: uuidv4 } = require('uuid');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({ log: ['query'] });
-
+// コメント編集
 router.post('/:blogId/users/:userId/comments/:commentId', 
   authenticationEnsurer,
   async (req, res, next) => {
@@ -56,7 +56,7 @@ router.post('/:blogId/users/:userId/comments/:commentId',
     }
   }
 );
-
+// コメント追加
 router.post('/:blogId/comments',
   authenticationEnsurer,
   async (req, res, next) => {
@@ -90,7 +90,7 @@ router.post('/:blogId/comments',
     }
   }
 );
-
+// コメント削除
 router.post('/:blogId/users/:userId/comments/:commentId/delete',
   authenticationEnsurer,
   async (req, res, next) => {

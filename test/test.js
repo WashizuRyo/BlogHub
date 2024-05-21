@@ -91,7 +91,7 @@ describe('/blogs', () => {
 
   test('フォームの入力データが不正な場合', async () => {
     const { formToken, cookieToken } = await getCSRFTokens();
-    let res = await request(app)
+    await request(app)
       .post('/blogs')
       .set('Cookie', `csrfToken=${cookieToken}`)
       .send({
@@ -103,7 +103,7 @@ describe('/blogs', () => {
       .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
       .expect(400)
     
-    res = await request(app)
+    await request(app)
       .post('/blogs')
       .set('Cookie', `csrfToken=${cookieToken}`)
       .send({
@@ -115,7 +115,7 @@ describe('/blogs', () => {
       .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
       .expect(400)
 
-    res = await request(app)
+    await request(app)
       .post('/blogs')
       .set('Cookie', `csrfToken=${cookieToken}`)
       .send({
@@ -126,6 +126,31 @@ describe('/blogs', () => {
       })
       .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
       .expect(400)
+
+    await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: '',
+        blogText: 'aa',
+        comment: 'aa'
+      })
+      .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
+      .expect(400)
+
+      await request(app)
+      .post('/blogs')
+      .set('Cookie', `csrfToken=${cookieToken}`)
+      .send({
+        _csrf: formToken,
+        blogTitle: 'aa',
+        blogText: '',
+        comment: 'aa'
+      })
+      .expect(/<h1>入力された情報が不十分または正しくありません。\(文字列を入力してください\)<\/h1>/)
+      .expect(400)
+
   })
 });
 
@@ -408,6 +433,7 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {
         .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/aa1234/delete`)
         .send({ _csrf: formToken })
         .expect(/有効なコメントIDを入力してください。/)
+        .expect(400)
 
       //存在しないblogId,commentIdを指定した場合
       const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
@@ -415,6 +441,7 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {
         .post(`/blogs/${fakeUuid}/users/${comment[0].userId}/comments/${fakeUuid}/delete`)
         .send({ _csrf: formToken })
         .expect(/指定されたブログがない、または、削除する権限がありません。/)
+        .expect(404)
       //テストで作成したデータを削除
       await deleteBlogAggregate(blogId);
 
@@ -493,24 +520,28 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId', () => {
       .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/${commentId}`)
       .send({ comment: 1224 })
       .expect(/コメントを入力してください。/)
+      .expect(400)
 
     // blogIdがUUIDではない場合
     await request(app)
       .post(`/blogs/aaa123/users/${comment[0].userId}/comments/${commentId}`)
       .send({ comment: 'aaa' })
       .expect(/有効なブログIDを指定してください。/)
+      .expect(400)
 
     // userIdが不正な値の場合
     await request(app)
       .post(`/blogs/${blogId}/users/1234/comments/${commentId}`)
       .send({ comment: 'aaa' })
       .expect(/ユーザIDが不正です。/)
+      .expect(400)
 
     // commentIdがUUIDではない場合
     await request(app)
     .post(`/blogs/${blogId}/users/${comment[0].userId}/comments/aaa1234`)
     .send({ comment: 'aaa' })
     .expect(/有効なコメントIDを入力してください。/)
+    .expect(400)
 
     // blogId,commentIdはUUIDだが、存在しない場合
     const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
@@ -518,7 +549,7 @@ describe('/blogs/:blogId/users/:userId/comments/:commentId', () => {
       .post(`/blogs/${fakeUuid}/users/${comment[0].userId}/comments/${fakeUuid}`)
       .send({ comment: 'aaa' })
       .expect(/データベースエラー/)
-
+      .expect(500)
     //テストで作成したデータを削除
     await deleteBlogAggregate(blogId);
 
@@ -598,6 +629,7 @@ describe('/blogs/:blogId/update', () => {
         blogText: 'aaa'
       })
       .expect(/有効なブログIDを指定してください。/)
+      .expect(400)
 
     // blogTitleが文字列ではない場合
     await request(app)
@@ -609,6 +641,7 @@ describe('/blogs/:blogId/update', () => {
         blogText: 'aaa'
       })
       .expect(/文字列を入力してください。/)
+      .expect(400)
 
     // blogTextが文字列ではない場合
     await request(app)
@@ -620,6 +653,7 @@ describe('/blogs/:blogId/update', () => {
         blogText: 1234
       })
       .expect(/文字列を入力してください。/)
+      .expect(400)
     
     // blogIdがUUIDであるが、存在しない場合
     const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
@@ -632,6 +666,7 @@ describe('/blogs/:blogId/update', () => {
         blogText: 'aaa'
       })
       .expect(/指定されたブログがない、または、ブログを編集する権限がありません。/)
+      .expect(404)
 
     //テストで作成したデータを削除
     await deleteBlogAggregate(blogId);
@@ -703,6 +738,7 @@ describe('/blogs/:blogId/delete', () => {
       .set('Cookie', `csrfToken=${cookieToken}`)
       .send({ _csrf: formToken })
       .expect(/URLの形式が正しくありません。/)
+      .expect(400)
 
     // blogIdがUUIDであるが、存在しない場合
     const fakeUuid = '4a2e1dd2-9877-4e68-85c1-e3d8e8bfb5cd';
@@ -711,6 +747,7 @@ describe('/blogs/:blogId/delete', () => {
       .set('Cookie', `csrfToken=${cookieToken}`)
       .send({ _csrf: formToken })
       .expect(/指定されたブログがない、または、削除する権限がありません。/)
+      .expect(404)
 
     //テストで作成したデータを削除
     await deleteBlogAggregate(blogId);

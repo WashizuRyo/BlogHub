@@ -12,8 +12,8 @@ router.get('/new', authenticationEnsurer, (req, res, next) => {
 });
 
 router.post('/', authenticationEnsurer, async (req, res, next) => {
-  await body('blogTitle').isString().run(req);
-  await body('blogText').isString().run(req);
+  await body('blogTitle').isString().not().isEmpty().run(req);
+  await body('blogText').isString().not().isEmpty().run(req);
   await body('comment').isString().run(req);
   const errors = validationResult(req);
 
@@ -37,7 +37,7 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
   });
   const commentId = uuidv4();
   // comment作成
-  const comment = await prisma.comment.create({
+  await prisma.comment.create({
     data: {
       commentId: commentId,
       blogId: blogId,
