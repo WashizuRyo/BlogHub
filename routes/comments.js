@@ -34,6 +34,7 @@ router.post('/:blogId/users/:userId/comments/:commentId',
       userId,
       blogId,
       username,
+      createdAt: new Date(),
       comment: comment.slice(0, 255)
     };
 
@@ -46,7 +47,7 @@ router.post('/:blogId/users/:userId/comments/:commentId',
             blogId
           }
         },
-        update: data,
+        update: { comment: data.comment },
         create: data
       });
     res.status(200).json({ status: 'OK', comment: comment });
@@ -72,6 +73,7 @@ router.post('/:blogId/comments',
     const blogId = req.params.blogId;
     const userId = parseInt(req.user.id);
     const username = req.user.username;
+    const createdAt = new Date();
     const comment = req.body.comment;
     const commentId = uuidv4();
     try {
@@ -81,6 +83,7 @@ router.post('/:blogId/comments',
           blogId,
           userId,
           username,
+          createdAt,
           comment: comment.slice(0, 255)
         }
       });

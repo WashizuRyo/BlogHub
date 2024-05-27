@@ -272,7 +272,7 @@ describe('/blogs/:blogId/comments', () => {
     passportStub.uninstall();
 
   });
-  test('コメントを追加できる', async () => {
+  test('コメントを追加でき、投稿日時で降順で表示される', async () => {
     const { formToken, cookieToken } = await getCSRFTokens();
     const res = await request(app)
       .post('/blogs')
@@ -296,6 +296,10 @@ describe('/blogs/:blogId/comments', () => {
     expect(comments.length).toBe(2);
     expect(comments[0].comment).toBe('testComment');
     expect(comments[1].comment).toBe('testComment2');
+
+    await request(app)
+      .get(createdBlogPath)
+      .expect(/testComment2.*testComment/)
     //テストで作成したデータを削除
     await deleteBlogAggregate(blogId);
 
@@ -340,6 +344,7 @@ describe('/blogs/:blogId/comments', () => {
     await deleteBlogAggregate(blogId);
 
   })
+
 });
 
 describe('/blogs/:blogId/users/:userId/comments/:commentId/delete', () => {

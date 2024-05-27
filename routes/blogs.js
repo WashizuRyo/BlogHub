@@ -25,6 +25,7 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
 
   const blogId = uuidv4();
   const updatedAt = new Date();
+  const createdAt = new Date();
   //blog作成
   const blog = await prisma.blog.create({
     data: {
@@ -43,6 +44,7 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
       blogId: blogId,
       userId: parseInt(req.user.id),
       username: req.user.username,
+      createdAt: createdAt,
       comment: req.body.comment
     }
   });
@@ -79,7 +81,8 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
 
   // コメントの取得
   const comments = await prisma.comment.findMany({
-    where: { blogId: blog.blogId }
+    where: { blogId: blog.blogId },
+    orderBy: { createdAt: 'desc' }
   });
 
   res.render('blog', {
