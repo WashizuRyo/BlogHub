@@ -7,10 +7,12 @@ const { v4: uuidv4 } = require('uuid');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({ log: [ 'query' ] });
 
+// ブログ作成ページへ
 router.get('/new', authenticationEnsurer, (req, res, next) => {
   res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
+// ブログ作成
 router.post('/', authenticationEnsurer, async (req, res, next) => {
   await body('blogTitle').isString().not().isEmpty().run(req);
   await body('blogText').isString().not().isEmpty().run(req);
@@ -51,6 +53,8 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
   res.redirect(`/blogs/${blog.blogId}`);
 });
 
+
+// 指定されたブログを表示
 router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
   await param('blogId').isUUID('4').run(req);
   const errors = validationResult(req);
@@ -93,6 +97,8 @@ router.get('/:blogId', authenticationEnsurer, async (req, res, next) => {
   })
 });
 
+
+// 指定されたブログの編集ページへ
 router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
   await param('blogId').isUUID('4').run(req);
   const errors = validationResult(req);
@@ -121,6 +127,8 @@ router.get('/:blogId/edit', authenticationEnsurer, async (req, res, next) => {
   }
 });
 
+
+// 指定されたブログを編集
 router.post('/:blogId/update', authenticationEnsurer, async (req, res, next) => {
   await param('blogId').isUUID('4').withMessage('有効なブログIDを指定してください。').run(req);
   await body('blogTitle').isString().withMessage('文字列を入力してください。').run(req);
@@ -159,6 +167,8 @@ router.post('/:blogId/update', authenticationEnsurer, async (req, res, next) => 
   }
 });
 
+
+// 指定されたブログを削除
 router.post('/:blogId/delete', authenticationEnsurer, async (req, res, next) => {
   await param('blogId').isUUID('4').run(req);
   const errors = validationResult(req);
