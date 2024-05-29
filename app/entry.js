@@ -24,3 +24,16 @@ $('.self-comment-button').each((i, e) => {
     }
   });
 });
+
+const shareUrl = window.location.href;
+const shareUrlInput = $('#share-url');
+const shareUrlCopyButton = $('#copy-button');
+
+shareUrlInput.val(shareUrl);
+
+shareUrlCopyButton.on('click', () => {
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    shareUrlCopyButton.text('Copied!');
+    setTimeout(() => shareUrlCopyButton.text('Copy'), 1000);
+  });
+});
